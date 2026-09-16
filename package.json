@@ -1,0 +1,128 @@
+{
+  "name": "robot-live-runner",
+  "displayName": "Robot Framework Live Test Runner",
+  "description": "Interactive REPL and live step execution for Robot Framework",
+  "version": "1.0.0",
+  "publisher": "custom",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:robotframework"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "robotLiveTest.start",
+        "title": "Run Live Test",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "robotLiveTest.runTest",
+        "title": "Run Full Test",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "robotLiveTest.runSelected",
+        "title": "Run Selected Lines",
+        "icon": "$(selection)"
+      },
+      {
+        "command": "robotLiveTest.runBelow",
+        "title": "Run Below (Current line down)",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "robotLiveTest.pause",
+        "title": "Pause Execution",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "robotLiveTest.resume",
+        "title": "Resume Execution",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "robotLiveTest.stopBatch",
+        "title": "Stop Current Execution",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "robotLiveTest.stopSession",
+        "title": "Stop Live Testing Session",
+        "icon": "$(close)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "robotLiveTest.start",
+          "when": "resourceExtname == .robot && !robotLiveTest.isActive",
+          "group": "navigation@1"
+        },
+        {
+          "command": "robotLiveTest.runSelected",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "group": "navigation@2"
+        },
+        {
+          "command": "robotLiveTest.runBelow",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "group": "navigation@3"
+        },
+        {
+          "command": "robotLiveTest.runTest",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "group": "navigation@4"
+        },
+        {
+          "command": "robotLiveTest.pause",
+          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting && !robotLiveTest.isPaused",
+          "group": "navigation@5"
+        },
+        {
+          "command": "robotLiveTest.resume",
+          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting && robotLiveTest.isPaused",
+          "group": "navigation@5"
+        },
+        {
+          "command": "robotLiveTest.stopBatch",
+          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting",
+          "group": "navigation@6"
+        },
+        {
+          "command": "robotLiveTest.stopSession",
+          "when": "robotLiveTest.isActive",
+          "group": "navigation@7"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "robotLiveTest.runSelected",
+          "when": "resourceExtname == .robot && robotLiveTest.isActive",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "robotLiveTest.runBelow",
+          "when": "resourceExtname == .robot && robotLiveTest.isActive",
+          "group": "1_modification@2"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}
