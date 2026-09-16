@@ -16,10 +16,48 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "command": "robotLiveTest.runSelected",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && robotLiveTest.isActive"
+      }
+    ],
+    "configuration": {
+      "title": "Robot Live Runner",
+      "properties": {
+        "robotLiveTest.highlightColor": {
+          "type": "string",
+          "default": "rgba(100, 150, 255, 0.3)",
+          "description": "Background color for currently executing lines (RGBA, HEX, or color name)."
+        },
+        "robotLiveTest.trailBaseColor": {
+          "type": "string",
+          "default": "76, 175, 80",
+          "description": "RGB values for the gutter trail (e.g., '76, 175, 80' for green, '255, 0, 0' for red)."
+        },
+        "robotLiveTest.trailLength": {
+          "type": "number",
+          "default": 3,
+          "description": "Number of previously executed lines to show in the fading gutter trail."
+        },
+        "robotLiveTest.additionalArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Custom arguments to pass to Robot Framework (e.g., '-v BROWSER:chrome')."
+        },
+        "robotLiveTest.useWorkspaceSettings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically inject standard Robot Framework launch arguments from your workspace settings.json."
+        }
+      }
+    },
     "commands": [
       {
         "command": "robotLiveTest.start",
-        "title": "Run Live Test",
+        "title": "Start Live Session",
         "icon": "$(play-circle)"
       },
       {
@@ -34,7 +72,7 @@
       },
       {
         "command": "robotLiveTest.runBelow",
-        "title": "Run Below (Current line down)",
+        "title": "Run Below",
         "icon": "$(arrow-down)"
       },
       {
@@ -49,13 +87,13 @@
       },
       {
         "command": "robotLiveTest.stopBatch",
-        "title": "Stop Current Execution",
+        "title": "Stop Queue",
         "icon": "$(debug-stop)"
       },
       {
         "command": "robotLiveTest.stopSession",
-        "title": "Stop Live Testing Session",
-        "icon": "$(close)"
+        "title": "Stop Live Session",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -66,18 +104,18 @@
           "group": "navigation@1"
         },
         {
-          "command": "robotLiveTest.runSelected",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "command": "robotLiveTest.runTest",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
           "group": "navigation@2"
         },
         {
-          "command": "robotLiveTest.runBelow",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "command": "robotLiveTest.runSelected",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
           "group": "navigation@3"
         },
         {
-          "command": "robotLiveTest.runTest",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting",
+          "command": "robotLiveTest.runBelow",
+          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
           "group": "navigation@4"
         },
         {
@@ -87,30 +125,18 @@
         },
         {
           "command": "robotLiveTest.resume",
-          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting && robotLiveTest.isPaused",
+          "when": "robotLiveTest.isActive && robotLiveTest.isPaused",
           "group": "navigation@5"
         },
         {
           "command": "robotLiveTest.stopBatch",
-          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting",
+          "when": "robotLiveTest.isActive && (robotLiveTest.isExecuting || robotLiveTest.isPaused)",
           "group": "navigation@6"
         },
         {
           "command": "robotLiveTest.stopSession",
           "when": "robotLiveTest.isActive",
           "group": "navigation@7"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "robotLiveTest.runSelected",
-          "when": "resourceExtname == .robot && robotLiveTest.isActive",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "robotLiveTest.runBelow",
-          "when": "resourceExtname == .robot && robotLiveTest.isActive",
-          "group": "1_modification@2"
         }
       ]
     }
