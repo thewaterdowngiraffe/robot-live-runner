@@ -1,4 +1,5 @@
 __pycache__
 out
 node_modules
-package-lock
+*.visx
+.venv

@@ -16,7 +16,7 @@ let currentExecutionRanges: vscode.Range[] = [];
 // Dynamic Gutter Trackers
 let trailDecorations: vscode.TextEditorDecorationType[] = [];
 let trailRanges: vscode.Range[][] = [];
-let executionHistoryLines: number[] = [];
+let executionHistoryBlocks: number[][] = [];
 
 // Track settings changes to prevent memory leaks
 let currentHighlightColor = '';
@@ -97,36 +97,77 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('robotLiveTest.runSelected', () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
-        const selection = editor.selection;
         const doc = editor.document;
-        let lines: { text: string, line: number }[] = [];
+        const selection = editor.selection;
 
-        if (selection.isEmpty) {
-            let currentLineNum = selection.active.line;
-            while (currentLineNum > 0) {
-                const text = doc.lineAt(currentLineNum).text.trim();
-                if (text.startsWith('...')) currentLineNum--;
-                else if (text.startsWith('#') || text === '') currentLineNum--;
-                else break;
-            }
-            const rootText = doc.lineAt(currentLineNum).text.trim();
-            if (rootText && !rootText.startsWith('#')) lines.push({ text: rootText, line: currentLineNum });
-
-            let nextLineNum = currentLineNum + 1;
-            while (nextLineNum < doc.lineCount) {
-                const nextText = doc.lineAt(nextLineNum).text.trim();
-                if (nextText.startsWith('...')) {
-                    lines.push({ text: nextText, line: nextLineNum });
-                    nextLineNum++;
-                } else if (nextText.startsWith('#') || nextText === '') nextLineNum++;
-                else break;
-            }
-        } else {
-            for (let i = selection.start.line; i <= selection.end.line; i++) {
-                const lineText = doc.lineAt(i).text.trim();
-                if (lineText && !lineText.startsWith('#')) lines.push({ text: lineText, line: i });
-            }
+        let startLineNum = selection.start.line;
+        while (startLineNum > 0) {
+            const text = doc.lineAt(startLineNum).text.trim();
+            if (text.startsWith('...')) startLineNum--;
+            else if (text.startsWith('#') || text === '') startLineNum--;
+            else break;
         }
+
+        let lines: { text: string, line: number }[] = [];
+        let blockDepth = 0;
+        let currentLineNum = startLineNum;
+        const targetEndLine = selection.end.line;
+
+        while (currentLineNum < doc.lineCount) {
+            const text = doc.lineAt(currentLineNum).text.trim();
+
+            if (text.startsWith('#') || text === '') {
+                currentLineNum++;
+                continue;
+            }
+
+            if (!text.startsWith('...')) {
+                // Peek ahead to stitch continuations for accurate block detection
+                let fullCommand = text;
+                let peekLineNum = currentLineNum + 1;
+                while (peekLineNum < doc.lineCount) {
+                    const nextText = doc.lineAt(peekLineNum).text.trim();
+                    if (nextText.startsWith('#') || nextText === '') {
+                        peekLineNum++;
+                        continue;
+                    }
+                    if (nextText.startsWith('...')) {
+                        fullCommand += '  ' + nextText.substring(3).trim();
+                        peekLineNum++;
+                    } else break;
+                }
+
+                const upper = fullCommand.toUpperCase();
+                const parts = fullCommand.split(/\s{2,}|\t/).filter(p => p.length > 0);
+
+                if (upper.startsWith('FOR ') || upper.startsWith('WHILE ') || upper === 'TRY') {
+                    blockDepth++;
+                } else if (upper.startsWith('IF ')) {
+                    let isInline = parts.length > 2 && !parts[2].startsWith('#');
+                    if (!isInline) blockDepth++;
+                } else if (upper === 'END') {
+                    blockDepth--;
+                }
+            }
+
+            lines.push({ text, line: currentLineNum });
+
+            if (currentLineNum >= targetEndLine && blockDepth <= 0 && lines.length > 0) {
+                let nextLineNum = currentLineNum + 1;
+                let hasContinuation = false;
+                while (nextLineNum < doc.lineCount) {
+                    const nextText = doc.lineAt(nextLineNum).text.trim();
+                    if (nextText.startsWith('#') || nextText === '') nextLineNum++;
+                    else if (nextText.startsWith('...')) {
+                        hasContinuation = true;
+                        break;
+                    } else break;
+                }
+                if (!hasContinuation) break;
+            }
+            currentLineNum++;
+        }
+
         if (lines.length === 0) return vscode.window.showWarningMessage('No executable lines found.');
         sendExecutionBatch(lines);
     }));
@@ -165,16 +206,84 @@ function sendExecutionBatch(lines: { text: string, line: number }[]) {
     if (!clientSocket || !isSessionActive) return vscode.window.showErrorMessage('No active live session.');
 
     let currentCommand: { commandText: string, originalLines: number[] } | null = null;
-    for (const item of lines) {
+    let blockDepth = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const item = lines[i];
         const trimmed = item.text.trim();
-        if (trimmed.startsWith('...')) {
-            if (currentCommand) {
-                currentCommand.commandText += '    ' + trimmed.substring(3).trim();
-                currentCommand.originalLines.push(item.line);
+
+        // Stitch continuations to check block depth accurately
+        let fullCommand = trimmed;
+        if (!trimmed.startsWith('...')) {
+            let j = i + 1;
+            while (j < lines.length) {
+                const nextTrimmed = lines[j].text.trim();
+                if (nextTrimmed.startsWith('...')) {
+                    fullCommand += '  ' + nextTrimmed.substring(3).trim();
+                    j++;
+                } else if (nextTrimmed.startsWith('#') || nextTrimmed === '') {
+                    j++;
+                } else break;
             }
-        } else {
-            if (currentCommand) executionQueue.push(currentCommand);
-            currentCommand = { commandText: item.text, originalLines: [item.line] };
+        }
+
+        const upper = fullCommand.toUpperCase();
+        const parts = fullCommand.split(/\s{2,}|\t/).filter(p => p.length > 0);
+
+        let isBlockStart = false;
+        let isBlockEnd = false;
+
+        if (!trimmed.startsWith('...')) {
+            if (upper.startsWith('FOR ') || upper.startsWith('WHILE ') || upper === 'TRY') {
+                isBlockStart = true;
+            } else if (upper.startsWith('IF ')) {
+                let isInline = parts.length > 2 && !parts[2].startsWith('#');
+                if (!isInline) isBlockStart = true;
+            } else if (upper === 'END') {
+                isBlockEnd = true;
+            }
+        }
+
+        if (isBlockStart) {
+            if (blockDepth === 0) {
+                if (currentCommand) executionQueue.push(currentCommand);
+                currentCommand = { commandText: item.text, originalLines: [item.line] };
+            } else {
+                currentCommand!.commandText += '\n    ' + trimmed;
+                currentCommand!.originalLines.push(item.line);
+            }
+            blockDepth++;
+        }
+        else if (isBlockEnd) {
+            if (blockDepth > 0) {
+                currentCommand!.commandText += '\n    ' + trimmed;
+                currentCommand!.originalLines.push(item.line);
+                blockDepth--;
+                if (blockDepth === 0) {
+                    executionQueue.push(currentCommand!);
+                    currentCommand = null;
+                }
+            } else {
+                if (currentCommand) executionQueue.push(currentCommand);
+                currentCommand = { commandText: item.text, originalLines: [item.line] };
+            }
+        }
+        else {
+            if (trimmed.startsWith('...')) {
+                if (currentCommand) {
+                    const appendText = blockDepth > 0 ? '\n    ' + trimmed : '    ' + trimmed.substring(3).trim();
+                    currentCommand.commandText += appendText;
+                    currentCommand.originalLines.push(item.line);
+                }
+            } else {
+                if (blockDepth > 0) {
+                    currentCommand!.commandText += '\n    ' + trimmed;
+                    currentCommand!.originalLines.push(item.line);
+                } else {
+                    if (currentCommand) executionQueue.push(currentCommand);
+                    currentCommand = { commandText: item.text, originalLines: [item.line] };
+                }
+            }
         }
     }
     if (currentCommand) executionQueue.push(currentCommand);
@@ -220,16 +329,20 @@ function connectToRunnerSocket(retries = 6) {
                 if (msg.status === 'EXECUTING_DONE') {
                     const editor = vscode.window.activeTextEditor;
                     if (editor && currentExecutingCommand) {
-                        const lastRow = currentExecutingCommand.originalLines[currentExecutingCommand.originalLines.length - 1];
-                        executionHistoryLines.push(lastRow);
+                        executionHistoryBlocks.push(currentExecutingCommand.originalLines);
 
                         const config = vscode.workspace.getConfiguration('robotLiveTest');
                         const trailLength = config.get<number>('trailLength', 3);
-                        const lastRows = executionHistoryLines.slice(-trailLength).reverse();
+                        const lastBlocks = executionHistoryBlocks.slice(-trailLength).reverse();
 
                         trailRanges = [];
                         for (let i = 0; i < trailLength; i++) {
-                            trailRanges.push(lastRows.length > i ? [editor.document.lineAt(lastRows[i]).range] : []);
+                            if (lastBlocks.length > i) {
+                                const ranges = lastBlocks[i].map(row => editor.document.lineAt(row).range);
+                                trailRanges.push(ranges);
+                            } else {
+                                trailRanges.push([]);
+                            }
                         }
                         updateTrailDecorations(editor, trailLength, config.get<string>('trailBaseColor', '76, 175, 80'));
                     }
@@ -304,7 +417,7 @@ function cleanupSession() {
     isPaused = false;
     updateContextKeys(false, false, false);
     executionQueue = [];
-    executionHistoryLines = [];
+    executionHistoryBlocks = [];
     clearExecutionHighlight();
     clearTrailDecorations();
     if (clientSocket) {
@@ -314,10 +427,19 @@ function cleanupSession() {
 }
 
 function getActiveTestCaseName(editor: vscode.TextEditor): string | null {
+    let candidateName: string | null = null;
+
     for (let i = editor.selection.active.line; i >= 0; i--) {
         const text = editor.document.lineAt(i).text;
-        if (/^\*\*\*\s*(Test Cases|Tasks)\s*\*\*\*/i.test(text)) break;
-        if (/^[A-Za-z0-9_].+/.test(text) && !text.startsWith(' ') && !text.startsWith('\t')) return text.trim();
+        if (/^\*\*\*/.test(text)) {
+            if (/^\*\*\*\s*(Test Cases|Tasks)\s*\*\*\*/i.test(text)) {
+                return candidateName;
+            }
+            return null;
+        }
+        if (!candidateName && /^[A-Za-z0-9_].+/.test(text) && !text.startsWith(' ') && !text.startsWith('\t')) {
+            candidateName = text.trim();
+        }
     }
     return null;
 }

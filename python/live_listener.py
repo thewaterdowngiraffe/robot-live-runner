@@ -1,12 +1,14 @@
+import os
 import socket
 import re
 import json
 import threading
+import uuid
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
 
 
-class live_listener:  # <--- Changed class name to match filename
+class live_listener:
     ROBOT_LISTENER_API_VERSION = 3
 
     def __init__(self, port="8765"):
@@ -69,6 +71,15 @@ class live_listener:  # <--- Changed class name to match filename
                 logger.console(f"Socket error: {e}")
                 break
 
+        # When the loop breaks, forcefully abort Robot Framework
+        # so it doesn't try to execute the rest of the test case.
+        try:
+            BuiltIn().run_keyword("Fatal Error", "Live session terminated by user.")
+        except Exception:
+            # Absolute fallback to instantly kill the terminal process if the keyword fails
+            import os
+            os._exit(0)
+
     def _process_command(self, message_str):
         """Parses the JSON command and executes the keyword."""
         try:
@@ -89,34 +100,74 @@ class live_listener:  # <--- Changed class name to match filename
             logger.console("Failed to decode command from VS Code.")
 
     def _execute_keyword(self, keyword_string):
-        """Safely executes a single Robot Framework keyword string and catches errors."""
+        """Safely executes a single Robot Framework keyword string or block and catches errors."""
         builtin = BuiltIn()
+        raw_string = keyword_string.strip()
 
-        # 1. Parse the string into keyword name and arguments
-        # We split by '    ' (four spaces) or '\t' (tab), which are Robot's default separators
-
-        parts = re.split(r'(?:\t| {3,})', keyword_string)
-
-        if not parts:
+        if not raw_string:
             self._send_status("EXECUTING_DONE")
             return
 
-        # Handle variable assignment if the line starts with ${VAR}=
-        assign = []
-        kw_name = ""
-        args = []
-
-        if "=" in parts[0] and parts[0].startswith("$"):
-            assign.append(parts[0])
-            kw_name = parts[1] if len(parts) > 1 else ""
-            args = parts[2:] if len(parts) > 2 else []
-        else:
-            kw_name = parts[0]
-            args = parts[1:] if len(parts) > 1 else []
-
-        # 2. Execute the keyword inside a try/except block
         try:
-            # We don't need to send EXECUTING_START anymore because the queue handles it
+            # 1. Intercept VAR syntax and translate to a keyword (Filtering out inline comments)
+            if raw_string.startswith('VAR '):
+                parts = [i for i in re.split(
+                    r'(?:\t| {3,})', raw_string) if not i.startswith('#')]
+                if len(parts) >= 3:
+                    builtin.run_keyword('Set Test Variable',
+                                        parts[1], *parts[2:])
+                self._send_status("EXECUTING_DONE")
+                return
+
+            # 2. Intercept Blocks and Inline Control Syntax using the Macro Resource trick
+            # This catches multi-line blocks AND single-line inline IFs
+            is_control_syntax = (
+                '\n' in raw_string or
+                raw_string.startswith(('IF ', 'FOR ', 'WHILE ')) or
+                raw_string == 'TRY'
+            )
+
+            if is_control_syntax:
+                # Generate a unique ID to bypass Robot Framework's resource caching
+                unique_id = str(uuid.uuid4())[:8]
+                kw_name = f"Live Runner Macro {unique_id}"
+                file_name = f"live_macro_{unique_id}.robot"
+
+                macro_path = os.path.join(
+                    os.getcwd(), file_name).replace('\\', '/')
+
+                with open(macro_path, 'w', encoding='utf-8') as f:
+                    f.write(f"*** Keywords ***\n{kw_name}\n")
+                    # Indent the block so it functions as a valid keyword body
+                    for line in keyword_string.split('\n'):
+                        f.write(f"    {line.strip()}\n")
+
+                # Import the uniquely named temp file and execute it
+                builtin.import_resource(macro_path)
+                builtin.run_keyword(kw_name)
+
+                # Clean up the temp file
+                if os.path.exists(macro_path):
+                    os.remove(macro_path)
+
+                self._send_status("EXECUTING_DONE")
+                return
+
+            # 3. Standard Keyword Execution (Filtering out inline comments)
+            parts = [i for i in re.split(
+                r'(?:\t| {3,})', raw_string) if not i.startswith('#')]
+
+            assign = []
+            kw_name = ""
+            args = []
+
+            if "=" in parts[0] and parts[0].startswith("$"):
+                assign.append(parts[0])
+                kw_name = parts[1] if len(parts) > 1 else ""
+                args = parts[2:] if len(parts) > 2 else []
+            else:
+                kw_name = parts[0]
+                args = parts[1:] if len(parts) > 1 else []
 
             if assign:
                 # If it's assigning a variable, run it and set the variable in the suite
@@ -127,7 +178,7 @@ class live_listener:  # <--- Changed class name to match filename
                 # Normal keyword execution
                 builtin.run_keyword(kw_name, *args)
 
-            # Success! Tell VS Code to send the next line in the queue.
+            # Tell VS Code to send the next line in the queue.
             self._send_status("EXECUTING_DONE")
 
         except Exception as e:
@@ -161,5 +212,3 @@ class live_listener:  # <--- Changed class name to match filename
             self.client_socket.close()
         if self.server_socket:
             self.server_socket.close()
-
-# Note: No instantiation at the bottom!
