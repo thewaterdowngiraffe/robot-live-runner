@@ -153,32 +153,39 @@ class live_listener:
                 self._send_status("EXECUTING_DONE")
                 return
 
-            # 3. Standard Keyword Execution (Filtering out inline comments)
             parts = [i for i in re.split(
                 r'(?:\t| {3,})', raw_string) if not i.startswith('#')]
 
             assign = []
-            kw_name = ""
-            args = []
+            # Extract all leading variable assignments (e.g. ${var}, ${var}=, @{list})
+            while parts and re.match(r'^[\$\@\&]\{.*?\}={0,1}$', parts[0].strip()):
+                assign.append(parts.pop(0))
 
-            if "=" in parts[0] and parts[0].startswith("$"):
-                assign.append(parts[0])
-                kw_name = parts[1] if len(parts) > 1 else ""
-                args = parts[2:] if len(parts) > 2 else []
-            else:
-                kw_name = parts[0]
-                args = parts[1:] if len(parts) > 1 else []
+            if not parts:
+                self._send_status("EXECUTING_DONE")
+                return
+
+            kw_name = parts[0]
+            args = parts[1:]
 
             if assign:
-                # If it's assigning a variable, run it and set the variable in the suite
+                # Run the keyword and capture the result
                 result = builtin.run_keyword(kw_name, *args)
-                var_name = assign[0].replace('=', '').strip()
-                builtin.set_suite_variable(var_name, result)
+
+                # Assign the result to the variables in the suite scope
+                if len(assign) == 1:
+                    var_name = assign[0].replace('=', '').strip()
+                    builtin.set_suite_variable(var_name, result)
+                else:
+                    # Unpack the result if multiple variables were assigned
+                    for i, var in enumerate(assign):
+                        var_name = var.replace('=', '').strip()
+                        builtin.set_suite_variable(var_name, result[i])
             else:
                 # Normal keyword execution
                 builtin.run_keyword(kw_name, *args)
 
-            # Tell VS Code to send the next line in the queue.
+            # Success! Tell VS Code to send the next line in the queue.
             self._send_status("EXECUTING_DONE")
 
         except Exception as e:
