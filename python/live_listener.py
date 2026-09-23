@@ -4,8 +4,9 @@ import re
 import json
 import threading
 import uuid
-from robot.libraries.BuiltIn import BuiltIn
+import tempfile
 from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn
 
 
 class live_listener:
@@ -103,7 +104,6 @@ class live_listener:
         """Safely executes a single Robot Framework keyword string or block and catches errors."""
         builtin = BuiltIn()
         raw_string = keyword_string.strip()
-
         if not raw_string:
             self._send_status("EXECUTING_DONE")
             return
@@ -133,8 +133,9 @@ class live_listener:
                 kw_name = f"Live Runner Macro {unique_id}"
                 file_name = f"live_macro_{unique_id}.robot"
 
+                temp_dir = tempfile.gettempdir()
                 macro_path = os.path.join(
-                    os.getcwd(), file_name).replace('\\', '/')
+                    temp_dir, file_name).replace('\\', '/')
 
                 with open(macro_path, 'w', encoding='utf-8') as f:
                     f.write(f"*** Keywords ***\n{kw_name}\n")
@@ -142,15 +143,17 @@ class live_listener:
                     for line in keyword_string.split('\n'):
                         f.write(f"    {line.strip()}\n")
 
-                # Import the uniquely named temp file and execute it
-                builtin.import_resource(macro_path)
-                builtin.run_keyword(kw_name)
+                try:
+                    builtin.import_resource(macro_path)
+                    builtin.run_keyword(kw_name)
+                    self._send_status("EXECUTING_DONE")
+                finally:
+                    if os.path.exists(macro_path):
+                        try:
+                            os.remove(macro_path)
+                        except Exception:
+                            pass
 
-                # Clean up the temp file
-                if os.path.exists(macro_path):
-                    os.remove(macro_path)
-
-                self._send_status("EXECUTING_DONE")
                 return
 
             parts = [i for i in re.split(

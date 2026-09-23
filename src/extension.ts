@@ -94,17 +94,28 @@ export function activate(context: vscode.ExtensionContext) {
         if (editor) sendExecutionBatch(getFullTestCaseLines(editor));
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('robotLiveTest.runSelected', () => {
+ context.subscriptions.push(vscode.commands.registerCommand('robotLiveTest.runSelected', () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
         const doc = editor.document;
         const selection = editor.selection;
 
+        let hasExecutable = false;
+        for (let i = selection.start.line; i <= selection.end.line; i++) {
+            const t = doc.lineAt(i).text.trim();
+            if (t !== '' && !t.startsWith('#')) {
+                hasExecutable = true;
+                break;
+            }
+        }
+        if (!hasExecutable) {
+            return vscode.window.showWarningMessage('No executable lines found.');
+        }
+
         let startLineNum = selection.start.line;
         while (startLineNum > 0) {
             const text = doc.lineAt(startLineNum).text.trim();
             if (text.startsWith('...')) startLineNum--;
-            else if (text.startsWith('#') || text === '') startLineNum--;
             else break;
         }
 
@@ -305,7 +316,25 @@ function processQueue() {
 
     if (currentExecutingCommand) {
         const editor = vscode.window.activeTextEditor;
-        if (editor) highlightExecutingLines(editor, currentExecutingCommand.originalLines);
+        if (editor) {
+            // Highlight the actively executing line
+            highlightExecutingLines(editor, currentExecutingCommand.originalLines);
+            executionHistoryBlocks.push(currentExecutingCommand.originalLines);
+            const config = vscode.workspace.getConfiguration('robotLiveTest');
+            const trailLength = config.get<number>('trailLength', 3);
+            const lastBlocks = executionHistoryBlocks.slice(-trailLength).reverse();
+            trailRanges = [];
+            for (let i = 0; i < trailLength; i++) {
+                if (lastBlocks.length > i) {
+                    const ranges = lastBlocks[i].map(row => editor.document.lineAt(row).range);
+                    trailRanges.push(ranges);
+                } else {
+                    trailRanges.push([]);
+                }
+            }
+            updateTrailDecorations(editor, trailLength, config.get<string>('trailBaseColor', '76, 175, 80'));
+        }
+
         sendCommand({ command: 'EXECUTE', lines: [currentExecutingCommand.commandText] });
     }
 }
@@ -327,25 +356,6 @@ function connectToRunnerSocket(retries = 6) {
             try {
                 const msg = JSON.parse(line);
                 if (msg.status === 'EXECUTING_DONE') {
-                    const editor = vscode.window.activeTextEditor;
-                    if (editor && currentExecutingCommand) {
-                        executionHistoryBlocks.push(currentExecutingCommand.originalLines);
-
-                        const config = vscode.workspace.getConfiguration('robotLiveTest');
-                        const trailLength = config.get<number>('trailLength', 3);
-                        const lastBlocks = executionHistoryBlocks.slice(-trailLength).reverse();
-
-                        trailRanges = [];
-                        for (let i = 0; i < trailLength; i++) {
-                            if (lastBlocks.length > i) {
-                                const ranges = lastBlocks[i].map(row => editor.document.lineAt(row).range);
-                                trailRanges.push(ranges);
-                            } else {
-                                trailRanges.push([]);
-                            }
-                        }
-                        updateTrailDecorations(editor, trailLength, config.get<string>('trailBaseColor', '76, 175, 80'));
-                    }
                     processQueue();
                 } else if (msg.status === 'ERROR') {
                     vscode.window.showErrorMessage(`Robot Failed: ${msg.error}`);
