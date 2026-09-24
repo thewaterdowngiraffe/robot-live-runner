@@ -19,19 +19,19 @@ Instead of waiting for an entire test suite to run, this tool pauses execution a
 
 # How to Use
 1. Open a robot framework `.robot` file
-2. Locate and press the start `start live session` near the play button ![](https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/icons/play-circle.svg)
+2. Locate and press the start `start live session` near the play button (play-circle icon)
 3. Once pressed you will run the suite setup (if applicable) than it will wait for you to select code to run.
 4. Running code. There are several ways to run your robot framework code with this tool.
-    1. Selecting code. Once selected you may run it by pressing the `run selected` button ![](https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/icons/list-selection.svg) or press `Control` + `Enter` on your keyboard. To select the code to run here are the two main ways of doing it.
+    1. Selecting code. Once selected you may run it by pressing the `run selected` button (list-selection icon) or press `Control` + `Enter` on your keyboard. To select the code to run here are the two main ways of doing it.
         1. Place your cursor on a line to indicate that you want to run just that line.
         2. Highlight rows to run all selected rows (if you select part of a row, the entire row will be selected)
-    2. Run bellow: Place your cursor on a line with robot framework code then press the `Run bellow` button ![](https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/icons/arrow-down.svg). This will run all code bellow where your cursor is.
-    3. Run full test ![](https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/icons/run-all.svg) Pressing the `Run full test` button will locate the current test case your cursor is in and run it from the begining.
+    2. Run bellow: Place your cursor on a line with robot framework code then press the `Run bellow` button (arrow-down icon). This will run all code bellow where your cursor is.
+    3. Run full test (run-all icon) Pressing the `Run full test` button will locate the current test case your cursor is in and run it from the begining.
 5. Other commands. While the steps are running, you will see a button to pause execution, resume execution, and end queue.
     1. Pause: Will wait for whatever is running to stop, but will not run anything else untill you press resume.
     2. Resume: only visible while paused, but will resume the execution of your queue.
     3. Exit queue: This will end your *queue* so you may edit or rerun segments of your code. If keywords are activly running, whatever keyword is activly running will need to finish before the queue is cleared.
-6. Exiting Live test mode. Locate the `Stop Live Session` button ![](https://raw.githubusercontent.com/microsoft/vscode-codicons/main/src/icons/trash.svg) this will simply quit the active test/queue in full.
+6. Exiting Live test mode. Locate the `Stop Live Session` button (trash icon) this will simply quit the active test/queue in full.
 
 ## QOL Features
 - Indicator for what is activly running
@@ -43,7 +43,7 @@ Instead of waiting for an entire test suite to run, this tool pauses execution a
     > I can not promise that it will work every time. This feature was added because I needed to have a second listener. Your milage may vary currently it only keeps the `'args'` from the launch config.
 - Code will try to use whatever python environment you have selected.
     > Note this will not work if you do not have `robotframework` installed within that env. run the bellow command to install it.
-    ```cmd
+    ```bash
     python -m pip install robotframework
     ```
 - There are several small adjustments that can be made within the vscode settings for this extension.
