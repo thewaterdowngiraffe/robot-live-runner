@@ -2,7 +2,7 @@
   "name": "robot-live-runner",
   "displayName": "Robot Framework Live Testing Tool",
   "description": "Interactive REPL and live step execution for Robot Framework",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "thewaterdowngiraffe",
   "extensionDependencies": [
     "d-biehl.robotcode"
