@@ -39,7 +39,8 @@ class live_listener:
         """Accepts the VS Code connection in the background."""
         try:
             self.client_socket, addr = self.server_socket.accept()
-            logger.console("\n🟢 VS Code connected! Live session active.")
+            logger.console(
+                "\n\U0001f7e2 VS Code connected! Live session active.")
             self.is_session_active = True
             self.ready_event.set()
         except Exception as e:
@@ -49,7 +50,6 @@ class live_listener:
         """Pauses the test immediately after setup to wait for user commands."""
         # We wait for the client to connect before pausing
         self.ready_event.wait(timeout=10.0)
-
         if self.is_session_active:
             logger.console("Test paused. Waiting for commands from VS Code...")
             self._listen_for_commands()
@@ -89,7 +89,7 @@ class live_listener:
 
             if command == "EXIT_SESSION":
                 self.is_session_active = False
-                logger.console("\n🔴 Ending live session.")
+                logger.console("\n\U0001f534 Ending live session.")
 
             elif command == "EXECUTE":
                 # We expect exactly one line/keyword block from the extension queue
@@ -194,7 +194,8 @@ class live_listener:
         except Exception as e:
             # Failure! Catch the error, log it, and tell VS Code to halt the queue.
             error_message = str(e)
-            logger.console(f"\n❌ [LIVE RUNNER ERROR]: {error_message}")
+            logger.console(
+                f"\n\U0000274c [LIVE RUNNER ERROR]: {error_message}")
             self._send_error(error_message)
 
     def _send_status(self, status):

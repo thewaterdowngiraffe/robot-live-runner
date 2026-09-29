@@ -84,8 +84,13 @@ export function activate(context: vscode.ExtensionContext) {
             const cmd = `${callPrefix}"${pythonPath}" -m robot --listener "${listenerPath}:8765" ${configArgs}${testFilter} "${filePath}"`;
 
             liveTerminal.sendText(cmd);
-            vscode.window.showInformationMessage('Starting Live Session (Running Setup)...');
-            setTimeout(() => connectToRunnerSocket(), 2500);
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Starting Live Session",
+                cancellable: false
+            }, async (progress) => {
+                await connectToRunnerSocket(progress);
+            });
         })
     );
 
@@ -339,45 +344,54 @@ function processQueue() {
     }
 }
 
-function connectToRunnerSocket(retries = 6) {
-    clientSocket = new net.Socket();
-    clientSocket.connect(8765, '127.0.0.1', () => {
-        isSessionActive = true;
-        isExecuting = false;
-        isPaused = false;
-        updateContextKeys(true, false, false);
-        vscode.window.showInformationMessage('🟢 Live Session Active!');
-    });
+function connectToRunnerSocket(
+    progress: vscode.Progress<{ message?: string; increment?: number }>,
+    retries = 15
+): Promise<void> {
+    return new Promise((resolve) => {
 
-    clientSocket.on('data', (data) => {
-        const lines = data.toString().split('\n');
-        for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-                const msg = JSON.parse(line);
-                if (msg.status === 'EXECUTING_DONE') {
-                    processQueue();
-                } else if (msg.status === 'ERROR') {
-                    vscode.window.showErrorMessage(`Robot Failed: ${msg.error}`);
-                    executionQueue = [];
-                    isExecuting = false;
-                    isPaused = false;
-                    updateContextKeys(isSessionActive, false, false);
-                    clearExecutionHighlight();
-                }
-            } catch (e) {}
-        }
-    });
 
-    clientSocket.on('error', () => {
-        if (retries > 0) setTimeout(() => connectToRunnerSocket(retries - 1), 1000);
-        else {
-            vscode.window.showErrorMessage('Failed to attach to Live Runner.');
-            cleanupSession();
-        }
-    });
+        progress.report({ message: `${String.fromCodePoint((128359 - retries%12))} Connecting to socket... (${retries} attempts left)` });
 
-    clientSocket.on('close', () => cleanupSession());
+        clientSocket = new net.Socket();
+        clientSocket.connect(8765, '127.0.0.1', () => {
+            isSessionActive = true;
+            isExecuting = false;
+            isPaused = false;
+            updateContextKeys(true, false, false);
+            progress.report({ message: '\u{1f7e2} Connected! Live Session Active!' });
+            setTimeout(() => resolve(), 1500);
+        });
+
+        clientSocket.on('data', (data) => {
+            const lines = data.toString().split('\n');
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const msg = JSON.parse(line);
+                    if (msg.status === 'EXECUTING_DONE') {
+                        processQueue();
+                    } else if (msg.status === 'ERROR') {
+                        vscode.window.showErrorMessage(`Robot Failed: ${msg.error}`);
+                        executionQueue = [];
+                        isExecuting = false;
+                        isPaused = false;
+                        updateContextKeys(isSessionActive, false, false);
+                        clearExecutionHighlight();
+                    }
+                } catch (e) {}
+            }
+        });
+        clientSocket.on('error', () => {
+            if (retries > 0) setTimeout(() => connectToRunnerSocket(progress, retries - 1).then(resolve), 1000);
+            else {
+                progress.report({ message: '\u{1f534} Failed to attach to Live Runner.' });
+                cleanupSession();
+                setTimeout(() => resolve(), 2500);
+            }
+        });
+        clientSocket.on('close', () => cleanupSession());
+    });
 }
 
 async function resolvePythonPath(resource: vscode.Uri): Promise<string> {
