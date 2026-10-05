@@ -111,13 +111,25 @@ class live_listener:
         try:
             # 1. Intercept VAR syntax and translate to a keyword (Filtering out inline comments)
             if raw_string.startswith('VAR '):
+                # If `VAR` Map to correct legacy declaration then allow keyword to resume.
+                raw_string = re.sub(r"\s{3,}(?:#.*)", "", raw_string)
                 parts = [i for i in re.split(
-                    r'(?:\t| {3,})', raw_string) if not i.startswith('#')]
+                    r'(?:\t| {3,})', raw_string) if not i.startswith('#') and i]
                 if len(parts) >= 3:
-                    builtin.run_keyword('Set Test Variable',
-                                        parts[1], *parts[2:])
-                self._send_status("EXECUTING_DONE")
-                return
+                    scope = [i for i in parts if i.startswith('scope=')]
+                    for i in scope:
+                        parts.pop(parts.index(i))
+                        scope = scope[0].removeprefix('scope=')
+                    if len(scope) != 0:
+                        kw = f'Set {scope} Variable'
+                        raw_string = "   ".join(
+                            [kw, parts[1].removesuffix("="), *parts[2:]])
+                    else:
+                        kw = 'Set Variable'
+                        raw_string = "   ".join([parts[1], kw, *parts[2:]])
+                else:
+                    self._send_status("EXECUTING_DONE")
+                    return
 
             # 2. Intercept Blocks and Inline Control Syntax using the Macro Resource trick
             # This catches multi-line blocks AND single-line inline IFs

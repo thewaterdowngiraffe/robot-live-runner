@@ -1,4 +1,12 @@
 # Change Log
+
+## [1.0.5] - 2026-10-05
+
+### Fixed
+
+- Calling `VAR    ${Hello}    World` would soft crash the live test as `VAR` was not handled correctly, now if you directly call the `VAR` it will be mapped to a legacy keyword and honor your defined scope.
+- Improved VAR function handling by dropping the comments before splitting.
+
 ## [1.0.4] - 2026-09-29
 
 ### Changed
