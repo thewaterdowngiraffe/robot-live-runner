@@ -7,6 +7,7 @@ import uuid
 import tempfile
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
+from support import map_var_to_set_variable, get_keyword_parts
 
 
 class live_listener:
@@ -100,6 +101,20 @@ class live_listener:
         except json.JSONDecodeError:
             logger.console("Failed to decode command from VS Code.")
 
+    def _map_var_to_set_variable(self, raw_string) -> str | None:
+        """Calles the var mapping handeler, and processes the return and handels the error.
+        See `map_var_to_set_variable` for documentation details
+        TODO: Finish the docs
+        """
+        try:
+            return map_var_to_set_variable(raw_string)
+        except AssertionError as e:
+            error_message = str(e)
+            logger.console(
+                f"\n\U0000274c [LIVE RUNNER ERROR]: {error_message}")
+            self._send_error(error_message)
+            return None
+
     def _execute_keyword(self, keyword_string):
         """Safely executes a single Robot Framework keyword string or block and catches errors."""
         builtin = BuiltIn()
@@ -107,29 +122,11 @@ class live_listener:
         if not raw_string:
             self._send_status("EXECUTING_DONE")
             return
-
         try:
             # 1. Intercept VAR syntax and translate to a keyword (Filtering out inline comments)
-            if raw_string.startswith('VAR '):
-                # If `VAR` Map to correct legacy declaration then allow keyword to resume.
-                raw_string = re.sub(r"\s{3,}(?:#.*)", "", raw_string)
-                parts = [i for i in re.split(
-                    r'(?:\t| {3,})', raw_string) if not i.startswith('#') and i]
-                if len(parts) >= 3:
-                    scope = [i for i in parts if i.startswith('scope=')]
-                    for i in scope:
-                        parts.pop(parts.index(i))
-                        scope = scope[0].removeprefix('scope=')
-                    if len(scope) != 0:
-                        kw = f'Set {scope} Variable'
-                        raw_string = "   ".join(
-                            [kw, parts[1].removesuffix("="), *parts[2:]])
-                    else:
-                        kw = 'Set Variable'
-                        raw_string = "   ".join([parts[1], kw, *parts[2:]])
-                else:
-                    self._send_status("EXECUTING_DONE")
-                    return
+            raw_string = self._map_var_to_set_variable(raw_string)
+            if raw_string is None:
+                return None
 
             # 2. Intercept Blocks and Inline Control Syntax using the Macro Resource trick
             # This catches multi-line blocks AND single-line inline IFs
@@ -165,15 +162,13 @@ class live_listener:
                             os.remove(macro_path)
                         except Exception:
                             pass
-
                 return
 
-            parts = [i for i in re.split(
-                r'(?:\t| {3,})', raw_string) if not i.startswith('#')]
+            parts = get_keyword_parts(raw_string)
 
             assign = []
             # Extract all leading variable assignments (e.g. ${var}, ${var}=, @{list})
-            while parts and re.match(r'^[\$\@\&]\{.*?\}={0,1}$', parts[0].strip()):
+            while parts and re.match(r'^[\$\@\&]\{.*?\}=?$', parts[0].strip()):
                 assign.append(parts.pop(0))
 
             if not parts:
@@ -190,12 +185,12 @@ class live_listener:
                 # Assign the result to the variables in the suite scope
                 if len(assign) == 1:
                     var_name = assign[0].replace('=', '').strip()
-                    builtin.set_suite_variable(var_name, result)
+                    builtin.set_local_variable(var_name, result)
                 else:
                     # Unpack the result if multiple variables were assigned
                     for i, var in enumerate(assign):
                         var_name = var.replace('=', '').strip()
-                        builtin.set_suite_variable(var_name, result[i])
+                        builtin.set_local_variable(var_name, result[i])
             else:
                 # Normal keyword execution
                 builtin.run_keyword(kw_name, *args)

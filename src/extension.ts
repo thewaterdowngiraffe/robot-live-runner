@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (editor) sendExecutionBatch(getFullTestCaseLines(editor));
     }));
 
- context.subscriptions.push(vscode.commands.registerCommand('robotLiveTest.runSelected', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('robotLiveTest.runSelected', () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
         const doc = editor.document;
@@ -331,7 +331,9 @@ function processQueue() {
             trailRanges = [];
             for (let i = 0; i < trailLength; i++) {
                 if (lastBlocks.length > i) {
-                    const ranges = lastBlocks[i].map(row => editor.document.lineAt(row).range);
+                    const ranges = lastBlocks[i]
+                        .filter(row => row < editor.document.lineCount)
+                        .map(row => editor.document.lineAt(row).range);
                     trailRanges.push(ranges);
                 } else {
                     trailRanges.push([]);
@@ -351,7 +353,7 @@ function connectToRunnerSocket(
     return new Promise((resolve) => {
 
 
-        progress.report({ message: `${String.fromCodePoint((128359 - retries%12))} Connecting to socket... (${retries} attempts left)` });
+        progress.report({ message: `${String.fromCodePoint((128359 - retries % 12))} Connecting to socket... (${retries} attempts left)` });
 
         clientSocket = new net.Socket();
         clientSocket.connect(8765, '127.0.0.1', () => {
@@ -516,7 +518,9 @@ function highlightExecutingLines(editor: vscode.TextEditor, lineNumbers: number[
             overviewRulerLane: vscode.OverviewRulerLane.Left
         });
     }
-    currentExecutionRanges = lineNumbers.map(lineNum => editor.document.lineAt(lineNum).range);
+    currentExecutionRanges = lineNumbers
+        .filter(lineNum => lineNum < editor.document.lineCount)
+        .map(lineNum => editor.document.lineAt(lineNum).range);
     editor.setDecorations(executionDecorationType, currentExecutionRanges);
 }
 

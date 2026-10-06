@@ -1,5 +1,20 @@
 # Change Log
 
+## [1.0.6] - 2026-10-06
+
+### Changed
+
+- Noticed potential issue with VAR mapping where if you had a custom keyword that started with `VAR ` it would try to map it. example `VAR Zip list` that would trigger the var mapping. now logic checks for a minimum of 2 spaces after `VAR`.
+
+### Added
+
+- Started the prep work for exposing functions to enable unit tests for the `live_listener` file.
+- Added a TODO.md file, using [todo.md](https://github.com/todomd/todo.md) as a standard* (subject to change).
+
+### Fixed
+
+- Found the cause of the "Illegal value for `line`", drawing the line of what has ran, could be out of bounds of the file resulting in the above message. this has been resolved by applying a filter to the lines to ensure they are in bounds
+
 ## [1.0.5] - 2026-10-05
 
 ### Fixed
