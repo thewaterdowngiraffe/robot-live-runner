@@ -2,7 +2,7 @@
   "name": "robot-live-runner",
   "displayName": "Robot Framework Live Testing Tool",
   "description": "Interactive REPL and live step execution for Robot Framework",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "publisher": "thewaterdowngiraffe",
   "extensionDependencies": [
     "d-biehl.robotcode"
@@ -15,8 +15,16 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "keywords":[
+    "Live Test",
+    "Robot Framework Tools",
+    "Live Runner",
+    "Robot Framework Testing",
+    "REPL"
+  ],
   "categories": [
     "Testing",
+    "Debuggers",
     "Other"
   ],
   "activationEvents": [
