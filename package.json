@@ -15,8 +15,16 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "keywords":[
+    "Live Test",
+    "Robot Framework Tools",
+    "Live Runner",
+    "Robot Framework Testing",
+    "REPL"
+  ],
   "categories": [
     "Testing",
+    "Debuggers",
     "Other"
   ],
   "activationEvents": [
