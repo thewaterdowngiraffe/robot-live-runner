@@ -7,7 +7,7 @@ A Visual Studio Code extension that enables real-time, interactive test executio
   - [ ] Python unit test
     - [ ] Data processing
     - [ ] Connection to builtin library
-- [ ] Create Github piplines
+- [ ] Create Github pipelines
 - [ ] Update [README.md](README.md)
 - [ ] Add/Find an image for the extension.
 - [ ] Update Tags

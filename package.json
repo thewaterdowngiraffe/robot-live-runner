@@ -71,101 +71,124 @@
       }
     },
     "commands": [
-      {
-        "command": "robotLiveTest.start",
-        "title": "Start Live Session",
-        "icon": "$(play-circle)"
-      },
-      {
-        "command": "robotLiveTest.runTest",
-        "title": "Run Full Test",
-        "icon": "$(run-all)"
-      },
-      {
-        "command": "robotLiveTest.runSelected",
-        "title": "Run Selected Lines",
-        "icon": "$(selection)"
-      },
-      {
-        "command": "robotLiveTest.runBelow",
-        "title": "Run Below",
-        "icon": "$(arrow-down)"
-      },
-      {
-        "command": "robotLiveTest.pause",
-        "title": "Pause Execution",
-        "icon": "$(debug-pause)"
-      },
-      {
-        "command": "robotLiveTest.resume",
-        "title": "Resume Execution",
-        "icon": "$(debug-continue)"
-      },
-      {
-        "command": "robotLiveTest.stopBatch",
-        "title": "Stop Queue",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "robotLiveTest.stopSession",
-        "title": "Stop Live Session",
-        "icon": "$(trash)"
-      }
-    ],
+            {
+                "command": "robotLiveTest.StartLiveTest",
+                "title": "Start Live Test",
+                "icon": "$(play-circle)"
+            },
+            {
+                "command": "robotLiveTest.StopLiveTest",
+                "title": "Stop Live Test",
+                "icon": "$(stop)"
+            },
+            {
+                "command": "robotLiveTest.runSelected",
+                "title": "Run Selected",
+                "icon": "$(selection)"
+            },
+            {
+                "command": "robotLiveTest.RunBelow",
+                "title": "Run Below",
+                "icon": "$(arrow-down)"
+            },
+            {
+                "command": "robotLiveTest.RunFullTest",
+                "title": "Run Full Test",
+                "icon": "$(testing-run-all-icon)"
+            },
+            {
+                "command": "robotLiveTest.PauseExecution",
+                "title": "Pause Execution",
+                "icon": "$(debug-pause)"
+            },
+            {
+                "command": "robotLiveTest.ResumeExecution",
+                "title": "Resume Execution",
+                "icon": "$(debug-continue)"
+            },
+            {
+                "command": "robotLiveTest.StopCurrentQueue",
+                "title": "Stop Current Queue",
+                "icon": "$(clear-all)"
+            },
+            {
+                "command": "robotLiveTest.reimport",
+                "title": "Re-import",
+                "icon": "$(refresh)"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "robot-live-test-panel",
+                    "title": "Robot Live Test",
+                    "icon": "$(play)"
+                }
+            ]
+        },
+        "views": {
+            "robot-live-test-panel": [
+                {
+                    "id": "robotLiveTest.controlsView",
+                    "name": "Execution Controls"
+                },
+                {
+                    "id": "robotLiveTest.historyView",
+                    "name": "Recent Executions"
+                },
+                {
+                    "id": "robotLiveTest.ImportsView",
+                    "name": "Imported Libraries"
+                }
+            ]
+        },
     "menus": {
+        "view/item/context": [
+                {
+                    "command": "robotLiveTest.reimport",
+                    "when": "view == robotLiveTest.ImportsView && viewItem == file",
+                    "group": "inline"
+                }
+            ],
       "editor/title": [
-        {
-          "command": "robotLiveTest.start",
+         {
+          "command": "robotLiveTest.StartLiveTest",
           "when": "resourceExtname == .robot && !robotLiveTest.isActive",
           "group": "navigation@1"
         },
         {
-          "command": "robotLiveTest.runTest",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
-          "group": "navigation@2"
-        },
-        {
-          "command": "robotLiveTest.runSelected",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
-          "group": "navigation@3"
-        },
-        {
-          "command": "robotLiveTest.runBelow",
-          "when": "robotLiveTest.isActive && !robotLiveTest.isExecuting && !robotLiveTest.isPaused",
-          "group": "navigation@4"
-        },
-        {
-          "command": "robotLiveTest.pause",
-          "when": "robotLiveTest.isActive && robotLiveTest.isExecuting && !robotLiveTest.isPaused",
-          "group": "navigation@5"
-        },
-        {
-          "command": "robotLiveTest.resume",
-          "when": "robotLiveTest.isActive && robotLiveTest.isPaused",
-          "group": "navigation@5"
-        },
-        {
-          "command": "robotLiveTest.stopBatch",
-          "when": "robotLiveTest.isActive && (robotLiveTest.isExecuting || robotLiveTest.isPaused)",
-          "group": "navigation@6"
-        },
-        {
-          "command": "robotLiveTest.stopSession",
+          "command": "robotLiveTest.StopLiveTest",
           "when": "robotLiveTest.isActive",
-          "group": "navigation@7"
+          "group": "navigation@2"
         }
       ]
     }
   },
   "scripts": {
-    "test": "python -m pytest",
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+      "prepare": "npm run compile",
+      "vscode:prepublish": "npm run compile",
+      "compile": "tsc -p ./",
+      "watch": "tsc -watch -p ./",
+      "pretest": "npm run compile && npm run lint",
+      "lint": "eslint src",
+      "test": "python -m pytest && vscode-test"
   },
-  "devDependencies": {
-    "@types/node": "^20.19.43",
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.3.3"
-  }
+   "devDependencies": {
+        "@types/chai": "^4.3.20",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "24.x",
+        "@types/sinon": "^22.0.2",
+        "@types/vscode": "^1.85.x",
+        "@vscode/test-cli": "^0.0.15",
+        "@vscode/test-electron": "^3.0.0",
+        "chai": "^4.5.0",
+        "eslint": "^10.5.0",
+        "sinon": "^22.1.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.61.1"
+    },
+    "overrides": {
+        "diff": "^8.0.4",
+        "serialize-javascript": "^7.0.6"
+    }
 }

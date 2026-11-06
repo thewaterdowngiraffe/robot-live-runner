@@ -26,20 +26,20 @@ Instead of waiting for an entire test suite to run, this tool pauses execution a
         1. Place your cursor on a line to indicate that you want to run just that line.
         2. Highlight rows to run all selected rows (if you select part of a row, the entire row will be selected)
     2. Run bellow: Place your cursor on a line with robot framework code then press the `Run bellow` button (arrow-down icon). This will run all code bellow where your cursor is.
-    3. Run full test (run-all icon) Pressing the `Run full test` button will locate the current test case your cursor is in and run it from the begining.
+    3. Run full test (run-all icon) Pressing the `Run full test` button will locate the current test case your cursor is in and run it from the beginning.
 5. Other commands. While the steps are running, you will see a button to pause execution, resume execution, and end queue.
-    1. Pause: Will wait for whatever is running to stop, but will not run anything else untill you press resume.
+    1. Pause: Will wait for whatever is running to stop, but will not run anything else until you press resume.
     2. Resume: only visible while paused, but will resume the execution of your queue.
-    3. Exit queue: This will end your *queue* so you may edit or rerun segments of your code. If keywords are activly running, whatever keyword is activly running will need to finish before the queue is cleared.
+    3. Exit queue: This will end your *queue* so you may edit or rerun segments of your code. If keywords are actively running, whatever keyword is actively running will need to finish before the queue is cleared.
 6. Exiting Live test mode. Locate the `Stop Live Session` button (trash icon) this will simply quit the active test/queue in full.
 
 ## QOL Features
-- Indicator for what is activly running
+- Indicator for what is actively running
 - Indicators for last few keywords ran. (you may adjust the colour and length of the indicator)
 - If you edit the vscode settings for the robotcode plugin several settings will be honored.
     - output dir
     - variables
-- I have made attemps to have this solution attempt to adhear to the any settings set within the `launch.json` file.
+- I have made attempts to have this solution attempt to adhere to the any settings set within the `launch.json` file.
     > I can not promise that it will work every time. This feature was added because I needed to have a second listener. Your milage may vary currently it only keeps the `'args'` from the launch config.
 - Code will try to use whatever python environment you have selected.
     > Note this will not work if you do not have `robotframework` installed within that env. run the bellow command to install it.

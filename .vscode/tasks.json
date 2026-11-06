@@ -4,10 +4,43 @@
     {
       "type": "npm",
       "script": "watch",
-      "group": "build",
       "problemMatcher": "$tsc-watch",
       "isBackground": true,
-      "label": "npm: watch"
+      "presentation": {
+        "reveal": "never"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "npm run compile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Setup And Config Fresh Profile",
+      "type": "shell",
+      "command": "code",
+      "dependsOn": ["build"],
+      "args": [
+        "--profile",
+        "ext_dev_RFLT",
+        "--extensions-dir=${workspaceFolder}/.vscode-test/extensions",
+        "--install-extension",
+        "ms-python.debugpy",
+        "d-biehl.robotcode",
+        "--force"
+      ],
+      "dependsOrder": "sequence",
+      "presentation": {
+        "reveal": "silent"
+      }
     }
   ]
 }

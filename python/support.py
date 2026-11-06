@@ -1,59 +1,60 @@
-"""This is a support class that will be used for data parsing,
-formating and other reusable logic that can be unit tested.
-
-TODO add the unit tests.
-"""
 import re
 
 
 def get_keyword_parts(raw_string: str) -> list[str]:
-    """Drop the comments first, the extension will remove comments within a
-    multi line if they are in the correct spot. Given that there should not be any comments, this
-    will handle any that should not be in the script.
+    """Drops comments and splits keyword parts using standard Robot Framework
+    2-space or tab separation.
 
     :param raw_string: keyword to be executed
     :type raw_string: str
-    :return: split so the formating can start for the builtin library
+    :return: split parts for builtin library
     :rtype: list[str]
     """
-    # drop all comments and everything after it.
-    raw_string = re.sub(r"(?:\t| {3,})(?:#.*)", "", raw_string)
+    raw_string = re.sub(r"(?:\t| {2,})(?:#.*)", "", raw_string)
     parts = [i for i in re.split(
-        r'(?:\t| {3,})', raw_string) if not i.startswith('#') and i]
+        r'(?:\t| {2,})', raw_string) if not i.startswith('#') and i]
     return parts
 
 
 def map_var_to_set_variable(raw_string: str) -> str:
-    """If the string starts with `VAR  ` it will be mapped to the `set variable` command.
-    > Will honor your defined scope.
-    Examples
+    """If the string starts with `VAR  ` (or `VAR\\t`), it maps to the appropriate
+    `Set <Scope> Variable` command.
 
-    - `VAR    ${test}    123` -> `${test}   set variable   123`
-    - `VAR    ${test}    123    scope=global` -> `set global variable   ${test}   123`
-    - `VAR    ${test}    123    scope=test` -> `set test variable   ${test}   123`
-    - `VAR    ${test}    123    scope=suite` -> `set suite variable   ${test}   123`
+    - `VAR    ${test}    123` -> `Set Suite Variable    ${test}    123`
+    - `VAR    ${test}    123    scope=global` -> `Set global Variable    ${test}    123`
+    - `VAR    ${test}    123    scope=test` -> `Set test Variable    ${test}    123`
+    - `VAR    ${test}    123    scope=suite` -> `Set suite Variable    ${test}    123`
 
-    TODO write unit tests for this.
-
-    :param raw_string: the raw string that is to be ran.
-    :type raw_string: str
-    :return: formated and good to use code that robot framework will be able to
-        run via the builtin library.
-    :rtype: str
+    :param raw_string: the raw string that is to be run.
+    :return: formatted code compatible with Robot Framework BuiltIn library.
     """
-    if raw_string.startswith('VAR  '):
-        # If `VAR` Map to correct legacy declaration then allow keyword to resume.
-        parts = get_keyword_parts(raw_string)
-        scope = [i for i in parts if i.startswith('scope=')]
-        for i in scope:
-            parts.pop(parts.index(i))
-            scope = scope[0].removeprefix('scope=')
-        assert len(parts) > 2, \
-            f"Missing content from keyword. `{raw_string}` -> `{parts}`"
-        if len(scope) != 0:
-            kw = f'Set {scope} Variable'
-            return "    ".join(
-                [kw, parts[1].removesuffix("="), *parts[2:]])
+    processed_lines = []
+    valid_scopes = {"LOCAL", "TEST", "TASK", "SUITE", "GLOBAL"}
 
-        return "    ".join([parts[1], 'Set Variable', *parts[2:]])
-    return raw_string
+    for line in raw_string.splitlines():
+        if re.match(r'^VAR(?:\t| {2,})', line):
+            parts = get_keyword_parts(line)
+            scope_val = ""
+            clean_parts = list(parts)
+
+            # Only treat the LAST argument as scope= if there is still a value argument before it!
+            if len(clean_parts) > 3 and clean_parts[-1].lower().startswith('scope='):
+                scope_val = clean_parts.pop().rsplit("=", 1)[-1]
+
+            assert len(clean_parts) > 2, \
+                f"Missing content from VAR keyword. `{line}` -> `{parts}`"
+
+            target_scope = scope_val.upper() if scope_val else "SUITE"
+            assert target_scope in valid_scopes, \
+                f"Invalid VAR scope '{scope_val}' in `{line}`"
+
+            kw = f'Set {target_scope.capitalize()} Variable'
+            var_name = clean_parts[1][
+                :-1].rstrip() if clean_parts[1].endswith("=") else clean_parts[1]
+
+            mapped_line = "    ".join([kw, var_name, *clean_parts[2:]])
+            processed_lines.append(mapped_line)
+        else:
+            processed_lines.append(line)
+
+    return "\n".join(processed_lines)
