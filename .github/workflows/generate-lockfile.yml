@@ -1,19 +1,12 @@
 name: Generate and Add Package Lock
 on:
-  push:
-    branches:
-      - main
-      - pre-release
+
   pull_request:
-
-    types:
-        - synchronize
     branches:
       - main
       - pre-release
-    # paths:
-    #   - 'package.json'
-
+    paths:
+      - 'package.json'
 jobs:
   lockfile:
     runs-on: ubuntu-latest

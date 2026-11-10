@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 'lts/*'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -32,7 +32,7 @@ jobs:
       - name: Install VSCE globally
         run: npm install -g @vscode/vsce
 
-      - name: Package Extension (.vsix)
+      - name: Package Extension .vsix
         run: vsce package
 
 
@@ -76,11 +76,17 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - run: npm ci
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
       - name: pre release upload
         if: github.ref_name == 'pre-release'
         run: npx @vscode/vsce publish --oidc --pre-release
