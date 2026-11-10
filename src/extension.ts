@@ -25,8 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Highlight the lines and scroll them into the center of the view
         editor.selection = new vscode.Selection(range.start, range.end);
         editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-    })
-);
+    }));
     vscode.window.registerTreeDataProvider('robotLiveTest.historyView', historyProvider);
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(() => {
@@ -39,6 +38,14 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    context.subscriptions.push(vscode.window.onDidEndTerminalShellExecution((event) => {
+            if (status.liveTerminal !== null && event.terminal===status.liveTerminal ){
+                if(status.isSessionActive){vscode.window.showErrorMessage(MSG.error.terminalClosed);}
+                status.isSessionActive=false;
+                status.liveTerminal=null;
+            }
+    }));
+
     context.subscriptions.push(vscode.window.onDidCloseTerminal((closedTerminal) => {
             if (status.liveTerminal !== null && closedTerminal===status.liveTerminal){
                 // inform user
@@ -47,36 +54,36 @@ export function activate(context: vscode.ExtensionContext) {
                 status.isSessionActive=false;
                 status.liveTerminal=null;
             }
-        }));
+    }));
 
 
 
-        vscode.window.registerTreeDataProvider('robotLiveTest.ImportsView', importsTreeProvider_obj);
-        // This is the reimport button
-        const reimportCommand = vscode.commands.registerCommand('robotLiveTest.reimport', (node: ImportNode) => {
-            if (!node.fullPath) { return; }
-            let robotKeyword = '';
-            if (node.itemType === 'resource') {
-                robotKeyword = `Import Resource    \${EXECDIR}/${node.fullPath}`;
-            } else if (node.itemType === 'variable') {
-                robotKeyword = `Import Variables    \${EXECDIR}/${node.fullPath}`;
-            }
+    vscode.window.registerTreeDataProvider('robotLiveTest.ImportsView', importsTreeProvider_obj);
+    // This is the reimport button
+    const reimportCommand = vscode.commands.registerCommand('robotLiveTest.reimport', (node: ImportNode) => {
+        if (!node.fullPath) { return; }
+        let robotKeyword = '';
+        if (node.itemType === 'resource') {
+            robotKeyword = `Import Resource    \${EXECDIR}/${node.fullPath}`;
+        } else if (node.itemType === 'variable') {
+            robotKeyword = `Import Variables    \${EXECDIR}/${node.fullPath}`;
+        }
 
-            // Just use what is active, for if there is an error, if not, user can check the terminal and debug.
-            const activeEditor = vscode.window.activeTextEditor as vscode.TextEditor;
+        // Just use what is active, for if there is an error, if not, user can check the terminal and debug.
+        const activeEditor = vscode.window.activeTextEditor as vscode.TextEditor;
 
-            // prep command to be sent
-            const batchItem = {
-                text: robotKeyword,
-                line: 0,
-                editor: activeEditor
-            };
+        // prep command to be sent
+        const batchItem = {
+            text: robotKeyword,
+            line: 0,
+            editor: activeEditor
+        };
 
-            // execute the new command.
-            sendExecutionBatch([batchItem]);
-            vscode.window.showInformationMessage(`Re-importing ${node.label}...`);
-        });
+        // execute the new command.
+        sendExecutionBatch([batchItem]);
+        vscode.window.showInformationMessage(`Re-importing ${node.label}...`);
+    });
 
-        context.subscriptions.push(reimportCommand);
+    context.subscriptions.push(reimportCommand);
 }
 export function deactivate(){status.isSessionActive=false;}

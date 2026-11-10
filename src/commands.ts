@@ -7,8 +7,6 @@ import { MSG } from './config';
 
 
 
-
-
 // have isSessionActive be set by the connection and teardown status
 async function StartLiveTest(context:vscode.ExtensionContext|null=null) {
     // focus on tab so you can see stuff.
@@ -217,7 +215,6 @@ export const commandsMap: Record<string, CommandEntry> = {
         requiresContext:true,
         isVisible: (s) => !s.isSessionActive
     },
-
     'robotLiveTest.runSelected': {
         command: RunSelectedLines,
         toolTip:"Runs the selected lines, press ",
@@ -247,5 +244,4 @@ export const commandsMap: Record<string, CommandEntry> = {
         command: StopCurrentQueue,
         isVisible: (s) => s.isExecuting
     }
-
 };

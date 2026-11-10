@@ -1,5 +1,23 @@
 # Change Log
 
+## [1.1.1] - 2026-11-10
+
+### Fixed
+
+- Addressed some issues and scenarios where the extension would think the session was terminated, but the terminal would still be running.
+
+### Changed
+
+- Renamed and improved the github workflow.
+- Updated the readme to be more accurate with changes from `1.1.0`.
+
+### Added
+
+- When you kill the session, it will now force the session to update as terminated.
+- Added a [CONTRIBUTING](CONTRIBUTING.md) read me file.
+  > In a sufficient state, but not yet finished.
+- While the session is running, the listener will now handle and outright ignore any attempts to exit the session as it should be handled by the session.
+
 ## [1.1.0] - 2026-11-06
 
 ### Changed

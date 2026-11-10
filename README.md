@@ -1,52 +1,105 @@
 # Robot Framework Live Testing Tool
 
-A Visual Studio Code extension that enables real-time, interactive test execution for Robot Framework.
+This is a live testing tool that enables real time interaction with your test cases and resource files.
 
-Instead of waiting for an entire test suite to run, this tool pauses execution and allows you to send specific keywords, variables, or multi-line control blocks (like `FOR` and `IF` loops) directly from your editor to the active Robot Framework session.
-
-## Features
-* **Interactive Execution:** Highlight code or place your cursor on a line to run individual lines or blocks on the fly.
-* **Smart Control Block Parsing:** Natively handles `FOR`, `WHILE`, `TRY`, and `IF` statements (both block and inline) without crashing the live session.
-* **Terminal Output:** Routes all execution logs directly to the VS Code terminal.
-
-## Installation
-1. Go to the [Releases page](../../releases) of this repository.
-2. Download the latest `.vsix` file.
-3. Open VS Code and navigate to the **Extensions** view (`Ctrl+Shift+X`).
-4. Click the `...` menu at the top right of the Extensions panel.
-5. Select **Install from VSIX...** and choose the downloaded file.
+Struggling with debugging one command and tired of constantly having to relaunch your entire test case to debug and test. This was my issue and why this extension was created. This extension will enable you to run sections of your code as much as you want. Encounter an error: simply fix it and re-run the offending line or block or whatever you want. This tool puts you back in control.
 
 
-# How to Use
-1. Open a robot framework `.robot` file
-2. Locate and press the start `start live session` near the play button (play-circle icon)
-3. Once pressed you will run the suite setup (if applicable) than it will wait for you to select code to run.
-4. Running code. There are several ways to run your robot framework code with this tool.
-    1. Selecting code. Once selected you may run it by pressing the `run selected` button (list-selection icon) or press `Control` + `Enter` on your keyboard. To select the code to run here are the two main ways of doing it.
-        1. Place your cursor on a line to indicate that you want to run just that line.
-        2. Highlight rows to run all selected rows (if you select part of a row, the entire row will be selected)
-    2. Run bellow: Place your cursor on a line with robot framework code then press the `Run bellow` button (arrow-down icon). This will run all code bellow where your cursor is.
-    3. Run full test (run-all icon) Pressing the `Run full test` button will locate the current test case your cursor is in and run it from the beginning.
-5. Other commands. While the steps are running, you will see a button to pause execution, resume execution, and end queue.
-    1. Pause: Will wait for whatever is running to stop, but will not run anything else until you press resume.
-    2. Resume: only visible while paused, but will resume the execution of your queue.
-    3. Exit queue: This will end your *queue* so you may edit or rerun segments of your code. If keywords are actively running, whatever keyword is actively running will need to finish before the queue is cleared.
-6. Exiting Live test mode. Locate the `Stop Live Session` button (trash icon) this will simply quit the active test/queue in full.
+This is a Work in progress and is continuing to improve but there is a few small bugs here and there.
 
-## QOL Features
-- Indicator for what is actively running
-- Indicators for last few keywords ran. (you may adjust the colour and length of the indicator)
-- If you edit the vscode settings for the robotcode plugin several settings will be honored.
-    - output dir
-    - variables
-- I have made attempts to have this solution attempt to adhere to the any settings set within the `launch.json` file.
-    > I can not promise that it will work every time. This feature was added because I needed to have a second listener. Your milage may vary currently it only keeps the `'args'` from the launch config.
-- Code will try to use whatever python environment you have selected.
-    > Note this will not work if you do not have `robotframework` installed within that env. run the bellow command to install it.
-    ```bash
-    python -m pip install robotframework
-    ```
-- There are several small adjustments that can be made within the vscode settings for this extension.
+
+If you find a bug or want to request a feature
+---
+
+please visit the [github](https://github.com/thewaterdowngiraffe/robot-live-runner) and open an issue with the bug/feature.
+
+Think you can improve it, feel free to fork and open a request.
+
+
+# Quality Of Life Features.
+-> Smart Selection:
+---
+- When selecting code from any of the selection methods, it will check if you are on a multi line keyword and navigate up to get the entire thing.
+- Logic segments. If you put your cursor on a IF/WHILE/GROUP/FOR/TRY statement, it will grab the entire block and run it so you don't need to select the entire thing.
+
+-> Errors:
+---
+- When your code errors, it will stop, but not exit allowing you to debug the error in the error state.
+- When your code errors, the offending block will be highlighted (the keyword from the queue, does not show you sub keywords).
+
+
+-> General QOL features:
+---
+- Shows you what ran.
+- highlights what is running.
+- The extension does not check your code, it simply formats where needed and passes it into robot framework to run.
+- See what was imported
+    - Re import Variable files and Resource files.
+    - Libraries not supported yet.
+
+# How to run
+
+1. First run recommended:
+    1. Navigate to the Robot Live Test Control Tab.
+        - Option 1: Run the command `view: Show Robot Live Test` within vscode (ctrl + p to open the command menu).
+        - Option 2: Locate and press the Robot Live Test icon on the activity bar.
+    2. Launch the Live Test by pressing the <START BUTTON NAME> (Must be on a robot framework Test file. file extension of `.robot`)
+2. Standard method:
+    1. Open a `.robot` file and press the `Start Live Test` button beside where the normal Play button is. This will open the live test activity bar.
+3. You will see a notification saying `Connecting to socket`, please wait for it to say the message `Connected! Live Session Active!`. The same message will also be placed in your terminal once it is ready.
+4. Before you start sending commands into the session, please wait for it to say 'test paused.' that will indicate that it is ready to receive commands.
+
+
+## Activity Bar
+
+You will see 3 sections: Execution Controls, Recent Executions, and Imported Libraries.
+
+### Execution Bar
+
+This will be a quick access location for all of the commands:
+- Start Live Test
+    > Starts the live test session.
+
+- Run Selected
+    > Will run the line your cursor is on / the selected code.
+
+- Run Below
+    > runs the current line and everything below until the end of a keyword or test case.
+    >> If you have a teardown setup, it will run.
+
+
+- Run Full Test
+    > will search upward from your cursor position to the keyword/testcase name, than run everything below until the end of said keyword/testcase.
+    >> Will run teardown and setup commands if they are in the correct location.
+
+- Stop Live Test
+    > Will remove your queue, still can not abort your currently executing command.
+
+- Pause Execution
+    > will temporarily remove all items from your queue. does NOT pause the currently running keyword. Only visible while running keywords.
+
+- Resume Execution
+    > Re-adds your queue. Only visible while paused.
+
+- Stop Current Queue
+    > Will clear your run queue.
+
+- Stop Live Test
+    > Terminates the Live Test Session. Visible while the session is active. Will immediately exit the session and stop what is currently running.
+
+
+
+## Hotkeys:
+
+Run selected: `ctrl+enter` / mac: `cmd+enter`
+
+## Requirements:
+
+Technically: None\*.
+> \*The only requirement is that whatever python version or environment you are using the robot framework's library is installed. But to do anything with Robot Framework, you must have it installed so hence the asterisk.
+
+
+
 
 
 ## License

@@ -145,6 +145,7 @@ export const status = new Proxy(status_defaults, {
     else if (prop === 'isSessionActive' && target.isSessionActive !== value){
         target.isExecuting=false;
         if (value === false) {
+            if (status.liveTerminal !== null){status.liveTerminal.sendText('\u0003');} // send a exit command for scenarios where the session is not active yet
             clearTrailDecorations();
             historyProvider.clear();
             importsTreeProvider_obj.clear();
@@ -216,7 +217,8 @@ export async function ConnectToLiveTest(context:vscode.ExtensionContext|null=nul
     const configArgs = getRobotConfigArgs(editor.document.uri);
     const cmd = `${callPrefix}"${pythonPath}" -m robot --listener "${listenerPath}:8765" ${configArgs}${testFilter} "${filePath}"`;
 
-    status.liveTerminal.sendText(cmd);
+    if (status.liveTerminal.shellIntegration){status.liveTerminal.shellIntegration.executeCommand(cmd);}
+    else{status.liveTerminal.sendText(cmd);}
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Starting Live Session",
