@@ -4,7 +4,6 @@ node_modules
 *.vsix
 .venv
 .pytest_cache
-package-lock.json
 .vscode/settings.json
 .coverage
 *.js.map
