@@ -5,10 +5,12 @@
             "name": "Run Extension",
             "type": "extensionHost",
             "request": "launch",
+            "preLaunchTask": "Setup And Config Fresh Profile",
             "args": [
+                "--profile",
+                "ext_dev_RFLT",
                 "--extensionDevelopmentPath=${workspaceFolder}",
-                "--profile=ExtensionDev",
-                "C:\\Users\\kandrus\\Code\\Copado\\crt-training"
+                "--extensions-dir=${workspaceFolder}/.vscode-test/extensions"
             ],
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
