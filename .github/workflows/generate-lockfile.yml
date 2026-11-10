@@ -1,9 +1,14 @@
 name: Generate and Add Package Lock
 on:
   pull_request:
-    branches: [ main, pre-release ]
-    paths:
-      - 'package.json'
+
+    types:
+        - synchronize
+    branches:
+      - main
+      - pre-release
+    # paths:
+    #   - 'package.json'
 
 jobs:
   lockfile:
