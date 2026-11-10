@@ -2,7 +2,7 @@
   "name": "robot-live-runner",
   "displayName": "Robot Framework Live Testing Tool",
   "description": "Interactive REPL and live step execution for Robot Framework",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "thewaterdowngiraffe",
   "bugs": {"url": "https://github.com/thewaterdowngiraffe/robot-live-runner/issues"},
   "homepage": "https://github.com/thewaterdowngiraffe/robot-live-runner",

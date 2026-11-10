@@ -8,6 +8,7 @@ import tempfile
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from support import map_var_to_set_variable, get_keyword_parts
+import signal
 
 
 class live_listener:
@@ -22,6 +23,16 @@ class live_listener:
         self.connection_thread = None
         # self.libraries = {}
         self.imported_resources = {}
+
+        self.signal_received_count = 0
+        # Intercept both Ctrl+C (SIGINT) and kill/termination (SIGTERM) signals
+        signal.signal(signal.SIGINT, self._handle_signal)
+        signal.signal(signal.SIGTERM, self._handle_signal)
+
+    def _handle_signal(self, signum, frame):
+        logger.console(
+            'Ignoring users attempt to exit, if you are trying to abort, please use the stop live test button')
+        pass   # I dont want you to do anything, use the extension.
 
     def _make_relative_to_execdir(self, absolute_path):
         """Converts an absolute path to be relative to the Robot Framework ${EXECDIR}."""
