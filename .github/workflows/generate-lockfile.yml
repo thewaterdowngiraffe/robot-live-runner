@@ -1,5 +1,9 @@
 name: Generate and Add Package Lock
 on:
+  push:
+    branches:
+      - main
+      - pre-release
   pull_request:
 
     types:
